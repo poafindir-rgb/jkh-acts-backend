@@ -1,7 +1,7 @@
-import { GoogleGenAI } from "@google/genai";
+import OpenAI from "openai";
 
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export default async function handler(req, res) {
@@ -28,39 +28,38 @@ export default async function handler(req, res) {
       });
     }
 
-    const parts = [];
+    const content = [
+      {
+        type: "input_text",
+        text: prompt,
+      },
+    ];
 
     if (imageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: mimeType || "image/jpeg",
-          data: imageBase64,
-        },
+      content.push({
+        type: "input_image",
+        image_url: `data:${mimeType || "image/jpeg"};base64,${imageBase64}`,
       });
     }
 
-    parts.push({
-      text: prompt,
-    });
-
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [
+    const response = await openai.responses.create({
+      model: "gpt-4.1-mini",
+      input: [
         {
           role: "user",
-          parts,
+          content,
         },
       ],
     });
 
     return res.status(200).json({
-      text: response.text || "",
+      text: response.output_text || "",
     });
   } catch (error) {
-    console.error("Gemini backend error:", error);
+    console.error("OpenAI backend error:", error);
 
     return res.status(500).json({
-      error: "Gemini analysis failed",
+      error: "OpenAI analysis failed",
       details: String(error?.message || error),
     });
   }
